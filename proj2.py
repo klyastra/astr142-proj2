@@ -20,3 +20,50 @@ import numpy as np
 
 # Step 2: Plot each image with a unique colormap tint and then additively overlay together to form a color composite.
 # BLUE = J8M802020
+blue_data = fits.getdata('j8m802020_drc.fits')
+green_data = fits.getdata('j8m803020_drc.fits')
+red_data = fits.getdata('j8m804020_drc.fits')
+
+# setup the figure
+fig, ax = plt.subplots(figsize=(6.5, 4))
+leftmargin = 0.08
+bottommargin = 0.16
+plt.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
+
+
+# RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
+rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)
+
+# Define a function that allows us the modify levels of each channel in an RGB image
+# https://stackoverflow.com/questions/42008932/how-to-change-vmin-and-vmax-of-each-color-with-matplotlib-imshow
+def channelnorm(im, channel, vmin, vmax):
+    c = (im[:,:,channel]-vmin) / (vmax-vmin)
+    c[c<0.] = 0
+    c[c>1.] = 1
+    im[:,:,channel] = c
+    return im
+
+# Stretched red channel
+rgb_data = channelnorm(rgb_data, 0, -0.01, 0.043)
+# Stretched green channel
+rgb_data = channelnorm(rgb_data, 1, -0.01, 0.052)
+# Stretched blue channel
+rgb_data = channelnorm(rgb_data, 2, -0.01, 0.05)
+
+# Display RGB image after modifying channels
+rgb_display = ax.imshow(rgb_data, origin='lower')
+
+#vmin = 0  # set minimum brightness
+#vmax = 0.1  # set maximum brightness
+#blue = ax.imshow(blue_data, cmap='twilight_shifted', origin='lower', vmin=vmin, vmax=vmax)
+
+# Create a separate Axes for the colorbar, defining its position and size
+# The arguments are [left, bottom, width, height] in figure coordinates (0 to 1)
+#fig.colorbar(blue, label='Pixel Flux (datanumber)')
+
+# Then set title and labels
+ax.set_title('Hubble Ultra Deep Field')
+ax.set_xlabel('X position (pixels)') # Label the x-axis
+ax.set_ylabel('Y position (pixels)') # Label the y-axis
+
+plt.show()
