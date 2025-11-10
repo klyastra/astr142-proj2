@@ -18,4 +18,5 @@ import numpy as np
 # Each DRC-calibrated file has an HDUList containing the science image (0), and uncertainty stuff (1 and 2).
 # Read the HUDF paper for more info https://iopscience.iop.org/article/10.1086/507302/pdf
 
-# Step 2: 
+# Step 2: Plot each image with a unique colormap tint and then additively overlay together to form a color composite.
+# BLUE = J8M802020
