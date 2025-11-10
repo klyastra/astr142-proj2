@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from astropy.io import fits
+from astropy.wcs import WCS
 import numpy as np
 # from astropy.wcs import wcs
 # from astropy.table import Table
@@ -25,8 +26,15 @@ blue_data = fits.getdata('j8m802020_drc.fits')
 green_data = fits.getdata('j8m803020_drc.fits')
 red_data = fits.getdata('j8m804020_drc.fits')
 
+# Obtain the WCS from any one of the FITS images. They all have the same sky location & WCS, so it doesn't matter.
+hdulist = fits.open('j8m803020_drc.fits')
+header = hdulist[1].header  # Access the header of the science HDU (index 1)
+w = WCS(header)  # obtain the WCS object
+hdulist.close()  # close the FITS file to save memory
+##print(w)
+
 # setup the figure
-fig, ax = plt.subplots(figsize=(6.5, 4))
+fig, ax = plt.subplots(figsize=(6.5, 4), subplot_kw=dict(projection=w))  # projection keyword for WCS
 leftmargin = 0.08
 bottommargin = 0.16
 plt.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
@@ -64,8 +72,8 @@ rgb_display = ax.imshow(rgb_data, origin='lower')
 
 # Then set title and labels
 ax.set_title('Hubble Ultra Deep Field')
-ax.set_xlabel('X position (pixels)') # Label the x-axis
-ax.set_ylabel('Y position (pixels)') # Label the y-axis
+ax.set_xlabel('Right Ascension (hms)') # Label the x-axis
+ax.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding
 
 plt.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
 plt.show()
