@@ -78,14 +78,16 @@ quantity_support()  # this enables us to plot astropy Quantity values with units
 # Photometric redshift catalog:
 # ADS:  https://ui.adsabs.harvard.edu/abs/2006AJ....132..926C/abstract
 # VizieR:  https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/AJ/132/926/catalog
-rowlimit = 10
-Vizier.ROW_LIMIT = rowlimit
-z_phot_list = Vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
+rowlimit = -1
+# set up filters and limits before querying VizieR. Here we'll only get bright objects so we can see them in our plot
+vizier_obj = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb'],
+           column_filters={"Vmag":"<23"}, row_limit=rowlimit)
+z_phot_list = vizier_obj.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
 print(z_phot_list['RAJ2000'], z_phot_list['DEJ2000'])
 
 # plot circle patches for each row from the VizieR table
-for i in range(rowlimit):
+for i in range(len(z_phot_list['RAJ2000'])):
     ra_float = z_phot_list['RAJ2000'][i]
     dec_float = z_phot_list['DEJ2000'][i]
 
