@@ -161,7 +161,7 @@ scatterplot = ax_scat.errorbar(cross_match_result['zb'], cross_match_result['zMu
 # Get maximum photometric redshift (max_phot_z)
 max_phot_z = int(np.max(cross_match_result['zb']))  # get the max redshift, convert to int
 max_range = 2 * max_phot_z + 1
-# Overlay a y=x diagonal line
+# Overlay a y=x diagonal line (whose length depends on the max redshift found)
 x_function = np.linspace(0, max_phot_z, 100)
 linefit = ax_scat.plot(x_function, x_function,
         color='orange', linestyle='--', alpha=0.5,
@@ -170,11 +170,11 @@ linefit = ax_scat.plot(x_function, x_function,
 # Add labels and title
 ax_scat.set_xlabel("Photometric redshift (z_phot)")
 ax_scat.set_xticks(np.arange(max_range) * 0.5)  # ticks of 0.5 spacing, from 0 to 3.0
-ax_scat.set_xlim([0, max_phot_z])  # scake plot according to max phot_z
+ax_scat.set_xlim([0, max_phot_z])  # scale plot according to max phot_z
 
 ax_scat.set_ylabel("Spectropscopic redshift (z_spec)")
 ax_scat.set_yticks(np.arange(max_range) * 0.5)  # ticks of 0.5 spacing, from 0 to 3.0
-ax_scat.set_ylim([0, max_phot_z])  # scake plot according to max phot_z
+ax_scat.set_ylim([0, max_phot_z])  # scale plot according to max phot_z
 
 ax_scat.set_title("Photometric vs. Spectroscopic Redshifts\nin the Hubble Ultra Deep Field")
 ax_scat.set_aspect('equal', adjustable='box')  # force equal scale
