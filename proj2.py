@@ -38,7 +38,7 @@ hdulist.close()  # close the FITS file to save memory
 fig, ax = plt.subplots(figsize=(6.5, 4), subplot_kw=dict(projection=w))  # projection keyword for WCS
 leftmargin = 0.13
 bottommargin = 0.16
-plt.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
+fig.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
 
 # RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
 rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)
@@ -85,7 +85,7 @@ z_phot_rowlimit = -1
 # Here we'll only get bright objects so we can see them in our plot.
 # PLus, bright objects are more likely to have spectroscopic redshift measurements.
 z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb', 'zbmin', 'zbmax'],
-           column_filters={"Vmag":"<23"}, row_limit=z_phot_rowlimit)
+           column_filters={"Vmag":"<24"}, row_limit=z_phot_rowlimit)
 z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
 # "zbmin" and "zbmax" represent lower & upper bounds for zb, respectively
@@ -139,6 +139,10 @@ for i in range(len(z_phot_list['RAJ2000'])):
         phot_z_circle = patches.Circle((ra_px, dec_px),
                     radius=80, edgecolor='#FF00FF', facecolor='none', lw=0.5, alpha=1, label='Phot z only')
         ax.add_patch(phot_z_circle)
+
+    # break the loop if we have too many sources to plot
+    if i >= 200:
+        break
     
 fig.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors
 fig.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
@@ -146,18 +150,36 @@ fig.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
 
 # Step 4: Create scatterplot of photometric vs. spectroscopic redshifts
 fig_scat, ax_scat = plt.subplots(figsize=(6.5, 4))
-# Create the scatter plot
-# ax_scat.scatter(cross_match_result['zb'], cross_match_result['zMuse'])
-ax_scat.errorbar(cross_match_result['zb'], cross_match_result['zMuse'],
+fig_scat.subplots_adjust(left=0.15, bottom=0.12)
+# Create the scatter plot with errorbars
+scatterplot = ax_scat.errorbar(cross_match_result['zb'], cross_match_result['zMuse'],
                 xerr = [cross_match_result['zb']-cross_match_result['zbmin'], cross_match_result['zbmax']-cross_match_result['zb']],  # asymmetric error bars
                 yerr = 0.01*np.abs(cross_match_result['zMuse']),  # placeholder
-                fmt='o', markersize=4, color='red', alpha=0.5,
-                capsize=2, ecolor='lightcoral'
+                fmt='o', markersize=2.5, color='black', alpha=0.5,
+                capsize=1.5, ecolor='lightcoral', label="Datapoint"
                 )
+# Get maximum photometric redshift (max_phot_z)
+max_phot_z = int(np.max(cross_match_result['zb']))  # get the max redshift, convert to int
+max_range = 2 * max_phot_z + 1
+# Overlay a y=x diagonal line
+x_function = np.linspace(0, max_phot_z, 100)
+linefit = ax_scat.plot(x_function, x_function,
+        color='orange', linestyle='--', alpha=0.5,
+        label='Line of equality (z_phot = z_spec)')
+
 # Add labels and title
 ax_scat.set_xlabel("Photometric redshift (z_phot)")
+ax_scat.set_xticks(np.arange(max_range) * 0.5)  # ticks of 0.5 spacing, from 0 to 3.0
+ax_scat.set_xlim([0, max_phot_z])  # scake plot according to max phot_z
+
 ax_scat.set_ylabel("Spectropscopic redshift (z_spec)")
-ax_scat.set_title("Photometric vs. Spectroscopic Redshifts in Hubble Ultra Deep Field")
+ax_scat.set_yticks(np.arange(max_range) * 0.5)  # ticks of 0.5 spacing, from 0 to 3.0
+ax_scat.set_ylim([0, max_phot_z])  # scake plot according to max phot_z
+
+ax_scat.set_title("Photometric vs. Spectroscopic Redshifts\nin the Hubble Ultra Deep Field")
+ax_scat.set_aspect('equal', adjustable='box')  # force equal scale
+handles, labels = ax_scat.get_legend_handles_labels()
+ax_scat.legend(handles, labels,  fontsize=6, loc='upper right')
 fig_scat.savefig("phot-spec_redshift_plot.pdf", dpi=200)  # saving only works before showing plot
 
 plt.show()
