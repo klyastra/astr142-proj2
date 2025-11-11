@@ -20,6 +20,7 @@ import numpy as np
 # Each DRC-calibrated file has an HDUList containing the science image (0), and uncertainty stuff (1 and 2).
 # Read the HUDF paper for more info https://iopscience.iop.org/article/10.1086/507302/pdf
 
+
 # Step 2: Plot each image with a unique colormap tint and then additively overlay together to form a color composite.
 # BLUE = J8M802020
 blue_data = fits.getdata('j8m802020_drc.fits')
@@ -35,10 +36,9 @@ hdulist.close()  # close the FITS file to save memory
 
 # setup the figure
 fig, ax = plt.subplots(figsize=(6.5, 4), subplot_kw=dict(projection=w))  # projection keyword for WCS
-leftmargin = 0.08
+leftmargin = 0.13
 bottommargin = 0.16
 plt.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
-
 
 # RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
 rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)
@@ -62,18 +62,49 @@ rgb_data = channelnorm(rgb_data, 2, -0.01, 0.05)
 # Display RGB image after modifying channels
 rgb_display = ax.imshow(rgb_data, origin='lower')
 
-#vmin = 0  # set minimum brightness
-#vmax = 0.1  # set maximum brightness
-#blue = ax.imshow(blue_data, cmap='twilight_shifted', origin='lower', vmin=vmin, vmax=vmax)
-
-# Create a separate Axes for the colorbar, defining its position and size
-# The arguments are [left, bottom, width, height] in figure coordinates (0 to 1)
-#fig.colorbar(blue, label='Pixel Flux (datanumber)')
-
 # Then set title and labels
 ax.set_title('Hubble Ultra Deep Field')
 ax.set_xlabel('Right Ascension (hms)') # Label the x-axis
 ax.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding
+
+
+# Step 3: Retrieve source positions and photometric+spectroscopic redshifts from VizieR catalog
+from astroquery.vizier import Vizier
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+import matplotlib.patches as patches
+from astropy.visualization import quantity_support
+quantity_support()  # this enables us to plot astropy Quantity values with units
+# Photometric redshift catalog:
+# ADS:  https://ui.adsabs.harvard.edu/abs/2006AJ....132..926C/abstract
+# VizieR:  https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/AJ/132/926/catalog
+rowlimit = 10
+Vizier.ROW_LIMIT = rowlimit
+z_phot_list = Vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
+# "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
+print(z_phot_list['RAJ2000'], z_phot_list['DEJ2000'])
+
+# plot circle patches for each row from the VizieR table
+for i in range(rowlimit):
+    ra_float = z_phot_list['RAJ2000'][i]
+    dec_float = z_phot_list['DEJ2000'][i]
+
+    # Convert float to RA/Dec with units
+    skycoord_object = SkyCoord(ra=ra_float * u.degree, dec=dec_float * u.degree, frame='icrs')
+    ## ra, dec = skycoord_object.ra, skycoord_object.dec
+    # Plot the circle patch.
+    # By default, the circle patch's (x,y) coordinate argument is in units of pixels.
+    # Recall that the image size in pixels is 4217 x 4243 (in x,y orientation)
+    # We have RA/Dec coords from VizieR. Convert RA/Dec into pixels according to our WCS object named "w".
+    ra_px, dec_px = w.world_to_pixel(skycoord_object)
+
+    # plot the circle patch at our converted locations (colored green for z_phot)
+    z_phot_circle = patches.Circle((ra_px, dec_px), radius=80, edgecolor='#00FF00', facecolor='none', lw=0.5)
+    ax.add_patch(z_phot_circle)
+
+# Spectroscopic redshift catalog:
+
+# Step 4: Plot phot/spec redshift catalog sources onto RGB image
 
 plt.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
 plt.show()
