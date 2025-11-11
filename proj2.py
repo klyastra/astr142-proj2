@@ -75,14 +75,17 @@ from astropy import units as u
 import matplotlib.patches as patches
 from astropy.visualization import quantity_support
 quantity_support()  # this enables us to plot astropy Quantity values with units
-# Photometric redshift catalog:
+
+##### Photometric redshift catalog #####
 # ADS:  https://ui.adsabs.harvard.edu/abs/2006AJ....132..926C/abstract
 # VizieR:  https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/AJ/132/926/catalog
-rowlimit = -1
-# set up filters and limits before querying VizieR. Here we'll only get bright objects so we can see them in our plot
-vizier_obj = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb'],
-           column_filters={"Vmag":"<23"}, row_limit=rowlimit)
-z_phot_list = vizier_obj.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
+z_phot_rowlimit = -1
+# set up filters and limits before querying VizieR.
+# Here we'll only get bright objects so we can see them in our plot.
+# PLus, bright objects are more likely to have spectroscopic redshift measurements.
+z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb'],
+           column_filters={"Vmag":"<23"}, row_limit=z_phot_rowlimit)
+z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
 print(z_phot_list['RAJ2000'], z_phot_list['DEJ2000'])
 
@@ -100,13 +103,17 @@ for i in range(len(z_phot_list['RAJ2000'])):
     # We have RA/Dec coords from VizieR. Convert RA/Dec into pixels according to our WCS object named "w".
     ra_px, dec_px = w.world_to_pixel(skycoord_object)
 
-    # plot the circle patch at our converted locations (colored green for z_phot)
-    z_phot_circle = patches.Circle((ra_px, dec_px), radius=80, edgecolor='#00FF00', facecolor='none', lw=0.5)
+    # plot the circle patch at our converted locations (colored yellow for z_phot)
+    z_phot_circle = patches.Circle((ra_px, dec_px),
+                    radius=80, edgecolor='#FFFF00', facecolor='none', lw=0.5, label="z_phot only")
     ax.add_patch(z_phot_circle)
 
-# Spectroscopic redshift catalog:
+##### Spectroscopic redshift catalog #####
+
 
 # Step 4: Plot phot/spec redshift catalog sources onto RGB image
 
+
+plt.legend(handles=[z_phot_circle], fontsize=6)  # legend for patch colors
 plt.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
 plt.show()
