@@ -84,10 +84,11 @@ z_phot_rowlimit = -1
 # set up filters and limits before querying VizieR.
 # Here we'll only get bright objects so we can see them in our plot.
 # PLus, bright objects are more likely to have spectroscopic redshift measurements.
-z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb'],
+z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb', 'zbmin', 'zbmax'],
            column_filters={"Vmag":"<23"}, row_limit=z_phot_rowlimit)
 z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
+# "zbmin" and "zbmax" represent lower & upper bounds for zb, respectively
 
 # Assume that all spectroscopic redshift sources have photometric counterparts.
 # Hence, we refrain from querying the spectroscopic redshift catalog (commented out below)
@@ -139,8 +140,24 @@ for i in range(len(z_phot_list['RAJ2000'])):
                     radius=80, edgecolor='#FF00FF', facecolor='none', lw=0.5, alpha=1, label='Phot z only')
         ax.add_patch(phot_z_circle)
     
+fig.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors
+fig.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
 
-# Finally show & save the plot
-plt.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors
-plt.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
+
+# Step 4: Create scatterplot of photometric vs. spectroscopic redshifts
+fig_scat, ax_scat = plt.subplots(figsize=(6.5, 4))
+# Create the scatter plot
+# ax_scat.scatter(cross_match_result['zb'], cross_match_result['zMuse'])
+ax_scat.errorbar(cross_match_result['zb'], cross_match_result['zMuse'],
+                xerr = [cross_match_result['zb']-cross_match_result['zbmin'], cross_match_result['zbmax']-cross_match_result['zb']],  # asymmetric error bars
+                yerr = 0.01*np.abs(cross_match_result['zMuse']),  # placeholder
+                fmt='o', markersize=4, color='red', alpha=0.5,
+                capsize=2, ecolor='lightcoral'
+                )
+# Add labels and title
+ax_scat.set_xlabel("Photometric redshift (z_phot)")
+ax_scat.set_ylabel("Spectropscopic redshift (z_spec)")
+ax_scat.set_title("Photometric vs. Spectroscopic Redshifts in Hubble Ultra Deep Field")
+fig_scat.savefig("phot-spec_redshift_plot.pdf", dpi=200)  # saving only works before showing plot
+
 plt.show()
