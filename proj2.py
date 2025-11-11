@@ -67,9 +67,11 @@ ax.set_title('Hubble Ultra Deep Field')
 ax.set_xlabel('Right Ascension (hms)') # Label the x-axis
 ax.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding
 
+
 # Step 3: Query & plot photometric redshift catalog sources onto RGB image
 from astroquery.vizier import Vizier
-from astropy.coordinates import SkyCoord
+from astroquery.xmatch import XMatch
+from astropy.coordinates import SkyCoord, match_coordinates_sky
 from astropy import units as u
 import matplotlib.patches as patches
 from astropy.visualization import quantity_support
@@ -86,7 +88,30 @@ z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb'],
            column_filters={"Vmag":"<23"}, row_limit=z_phot_rowlimit)
 z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
-## print(z_phot_list['RAJ2000'], z_phot_list['DEJ2000'])
+
+# Assume that all spectroscopic redshift sources have photometric counterparts.
+# Hence, we refrain from querying the spectroscopic redshift catalog (commented out below)
+'''
+##### Spectroscopic redshift catalog #####
+# ADS:  https://ui.adsabs.harvard.edu/abs/2017A%26A...608A...2I/abstract
+# VizieR:  https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/608/A2/combined
+z_spec_rowlimit = -1
+# set up filters and limits before querying VizieR.
+z_spec_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'F775W', 'zMuse'],
+           column_filters={"F775W":"<23"}, row_limit=z_spec_rowlimit)
+z_spec_list = z_spec_vizier.get_catalogs("J/A+A/608/A2/combined")[0]  # 0th index is the actual contents of the tablelist
+# "zMuse" = spectroscopic redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
+'''
+
+##### RA/Dec cross-matching between Photometric & Spectroscopic sources  #####
+# https://astroquery.readthedocs.io/en/latest/xmatch/xmatch.html
+cross_match_result = XMatch.query(
+    cat1 = z_phot_list,
+    cat2 = 'vizier:J/A+A/608/A2/combined',  # this is the spectroscopic redshift catalog
+    max_distance = 0.1 * u.arcsec,
+    colRA1 = 'RAJ2000',
+    colDec1 = 'DEJ2000'
+)
 
 # plot circle patches for each row from the VizieR table
 for i in range(len(z_phot_list['RAJ2000'])):
@@ -102,43 +127,20 @@ for i in range(len(z_phot_list['RAJ2000'])):
     # We have RA/Dec coords from VizieR. Convert RA/Dec into pixels according to our WCS object named "w".
     ra_px, dec_px = w.world_to_pixel(skycoord_object)
 
-    # plot the circle patch at our converted locations (colored magenta for z_phot)
-    z_phot_circle = patches.Circle((ra_px, dec_px),
-                    radius=80, edgecolor='#FF00FF', facecolor='none', lw=0.5, alpha=0.5, label="z_phot only")
-    ax.add_patch(z_phot_circle)
+    if z_phot_list['RAJ2000'][i] in cross_match_result['RAJ2000_1']:
+        # plot green circles for sources with both phot & spec z
+        both_z_circle = patches.Circle((ra_px, dec_px),
+                    radius=80, edgecolor='#00FF00', facecolor='none', lw=0.5, alpha=1, label='Both phot & spec z')
+        ax.add_patch(both_z_circle)
+        
+    else:
+        # plot magenta circles for sources with both phot & spec z
+        phot_z_circle = patches.Circle((ra_px, dec_px),
+                    radius=80, edgecolor='#FF00FF', facecolor='none', lw=0.5, alpha=1, label='Phot z only')
+        ax.add_patch(phot_z_circle)
+    
 
-# Step 4: Query & plot spectroscopic redshift catalog sources onto RGB image
-##### Spectroscopic redshift catalog #####
-# ADS:  https://ui.adsabs.harvard.edu/abs/2017A%26A...608A...2I/abstract
-# VizieR:  https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/608/A2/combined
-z_spec_rowlimit = -1
-# set up filters and limits before querying VizieR.
-z_spec_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'F775W', 'zMuse'],
-           column_filters={"F775W":"<23"}, row_limit=z_spec_rowlimit)
-z_spec_list = z_spec_vizier.get_catalogs("J/A+A/608/A2/combined")[0]  # 0th index is the actual contents of the tablelist
-# "zMuse" = spectroscopic redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
-print(z_spec_list['RAJ2000'], z_spec_list['DEJ2000'])
-
-# plot circle patches for each row from the VizieR table
-for i in range(len(z_spec_list['RAJ2000'])):
-    ra_float = z_spec_list['RAJ2000'][i]
-    dec_float = z_spec_list['DEJ2000'][i]
-
-    # Convert float to RA/Dec with units
-    skycoord_object = SkyCoord(ra=ra_float * u.degree, dec=dec_float * u.degree, frame='icrs')
-    ## ra, dec = skycoord_object.ra, skycoord_object.dec
-    # Plot the circle patch.
-    # By default, the circle patch's (x,y) coordinate argument is in units of pixels.
-    # Recall that the image size in pixels is 4217 x 4243 (in x,y orientation)
-    # We have RA/Dec coords from VizieR. Convert RA/Dec into pixels according to our WCS object named "w".
-    ra_px, dec_px = w.world_to_pixel(skycoord_object)
-
-    # plot the circle patch at our converted locations (colored yellow for z_phot)
-    z_spec_circle = patches.Circle((ra_px, dec_px),
-                    radius=80, edgecolor='#00FF00', facecolor='none', lw=0.5, alpha=0.5, label="z_spec only")
-    ax.add_patch(z_spec_circle)
-
-
-plt.legend(handles=[z_phot_circle, z_spec_circle], fontsize=6)  # legend for patch colors
+# Finally show & save the plot
+plt.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors
 plt.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
 plt.show()
