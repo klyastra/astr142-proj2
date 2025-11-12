@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
+import matplotlib.gridspec as gridspec
 from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
@@ -34,12 +34,16 @@ w = WCS(header)  # obtain the WCS object
 hdulist.close()  # close the FITS file to save memory
 ##print(w)
 
-# setup the figure
-fig, ax = plt.subplots(figsize=(6.5, 4), subplot_kw=dict(projection=w))  # projection keyword for WCS
-leftmargin = 0.13
-bottommargin = 0.16
-fig.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
+### setup the figure
+fig = plt.figure(figsize=(12, 8.5))
+fig.tight_layout()
+gs = gridspec.GridSpec(3, 5, figure=fig) # big plot takes up 3 rows & 3 columns, + 2 columns for zoom plots
 
+#leftmargin = 0.13
+#bottommargin = 0.16
+#fig.subplots_adjust(left=leftmargin, bottom=bottommargin)  # adjust subplot margins for centering
+
+### create the big plot with the RGB image
 # RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
 rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)
 
@@ -59,15 +63,48 @@ rgb_data = channelnorm(rgb_data, 1, -0.01, 0.052)
 # Stretched blue channel
 rgb_data = channelnorm(rgb_data, 2, -0.01, 0.05)
 
-# Display RGB image after modifying channels
-rgb_display = ax.imshow(rgb_data, origin='lower')
+# Display RGB image in the big plot after modifying channels. This big plot spans multiple grid cells.
+ax_large = fig.add_subplot(gs[0:3, 0:3], projection=w) # Spans 3 rows and columns (from index 0 to 2)
+ax_large.imshow(rgb_data, origin='lower')
 
-# Then set title and labels
-ax.set_title('Hubble Ultra Deep Field')
-ax.set_xlabel('Right Ascension (hms)') # Label the x-axis
-ax.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding
+ax_large.set_title('Hubble Ultra Deep Field')
+ax_large.set_xlabel('Right Ascension (hms)') # Label the x-axis
+ax_large.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding
 
+# Create the six smaller zoom-in plots
+# We'll place them in the remaining grid cells and potentially create new ones within those
+zoom_regions = [
+    (0, 3),  # Top-left corner
+    (0, 4),  # Top-right corner
+    (1, 3),  # Middle-left corner
+    (1, 4),  # Middle-right corner 
+    (2, 3),  # Bottom-left corner
+    (2, 4)   # Bottom-right corner
+]
 
+# Define zoom-in limits for each small plot
+zoomin_size = 150  # panel width in pixels
+bl_corner_x = [200, 1555, 3390, 570, 3800, 2000]  # x positions of each panel's bottom left corner
+bl_corner_y = [400, 380, 420, 3870, 2570, 1161]  # y positions of each panel's bottom left corner
+
+# list of unique border colors for each zoom-in subplot
+from matplotlib.patches import Rectangle
+colorlist = ['red', 'orange', 'yellow', 'lime', 'cyan', 'magenta']
+for i, (row_idx, col_idx) in enumerate(zoom_regions):
+    if i < 6: # Ensure we only create 6 zoom-in plots
+        ax_zoom = fig.add_subplot(gs[row_idx, col_idx], projection=w)
+        ax_zoom.imshow(rgb_data, origin='lower')
+        ax_zoom.set_xlim(bl_corner_x[i], bl_corner_x[i]+zoomin_size)
+        ax_zoom.set_ylim(bl_corner_y[i], bl_corner_y[i]+zoomin_size)
+        ax_zoom.set_title(f'Zoom {i+1}')
+        ax_zoom.axis('off') # Hide ticks
+
+        # Plot squares representing areas of zoom on main big figure
+        zoom_loc = Rectangle((bl_corner_x[i], bl_corner_y[i]), zoomin_size, zoomin_size,
+                        fill=False, edgecolor=colorlist[i], linewidth=0.5)
+        ax_large.add_patch(zoom_loc)
+
+'''
 # Step 3: Query & plot photometric redshift catalog sources onto RGB image
 from astroquery.vizier import Vizier
 from astroquery.xmatch import XMatch
@@ -92,7 +129,7 @@ z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index
 
 # Assume that all spectroscopic redshift sources have photometric counterparts.
 # Hence, we refrain from querying the spectroscopic redshift catalog (commented out below)
-'''
+
 ##### Spectroscopic redshift catalog #####
 # ADS:  https://ui.adsabs.harvard.edu/abs/2017A%26A...608A...2I/abstract
 # VizieR:  https://vizier.cds.unistra.fr/viz-bin/VizieR-3?-source=J/A%2bA/608/A2/combined
@@ -102,7 +139,7 @@ z_spec_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'F775W', 'zMuse'],
            column_filters={"F775W":"<23"}, row_limit=z_spec_rowlimit)
 z_spec_list = z_spec_vizier.get_catalogs("J/A+A/608/A2/combined")[0]  # 0th index is the actual contents of the tablelist
 # "zMuse" = spectroscopic redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
-'''
+
 
 ##### RA/Dec cross-matching between Photometric & Spectroscopic sources  #####
 # https://astroquery.readthedocs.io/en/latest/xmatch/xmatch.html
@@ -143,11 +180,12 @@ for i in range(len(z_phot_list['RAJ2000'])):
     # break the loop if we have too many sources to plot
     if i >= 200:
         break
-    
+
 fig.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors
-fig.savefig("HUDF.pdf", dpi=400)  # saving only works before showing plot
+'''
+fig.savefig("HUDF_multiplot.pdf", dpi=300)  # saving only works before showing plot
 
-
+'''
 # Step 4: Create scatterplot of photometric vs. spectroscopic redshifts
 fig_scat, ax_scat = plt.subplots(figsize=(6.5, 4))
 fig_scat.subplots_adjust(left=0.15, bottom=0.12)
@@ -181,5 +219,5 @@ ax_scat.set_aspect('equal', adjustable='box')  # force equal scale
 handles, labels = ax_scat.get_legend_handles_labels()
 ax_scat.legend(handles, labels,  fontsize=6, loc='upper right')
 fig_scat.savefig("phot-spec_redshift_plot.pdf", dpi=200)  # saving only works before showing plot
-
+'''
 plt.show()
