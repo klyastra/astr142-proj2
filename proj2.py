@@ -37,7 +37,7 @@ hdulist.close()  # close the FITS file to save memory
 ### setup the figure
 fig = plt.figure(figsize=(8, 5))
 fig.tight_layout()
-gs = gridspec.GridSpec(3, 5, figure=fig) # big plot takes up 3 rows & 3 columns, + 2 columns for zoom plots
+gridspec = gridspec.GridSpec(3, 5, figure=fig) # big plot takes up 3 rows & 3 columns, + 2 columns for zoom plots
 
 ### create the big plot with the RGB image
 # RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
@@ -60,7 +60,7 @@ rgb_data = channelnorm(rgb_data, 1, -0.01, 0.052)
 rgb_data = channelnorm(rgb_data, 2, -0.01, 0.05)
 
 # Display RGB image in the big plot after modifying channels. This big plot spans multiple grid cells.
-ax_large = fig.add_subplot(gs[0:3, 0:3], projection=w) # Spans 3 rows and columns (from index 0 to 2)
+ax_large = fig.add_subplot(gridspec[0:3, 0:3], projection=w) # Spans 3 rows and columns (from index 0 to 2)
 ax_large.imshow(rgb_data, origin='lower')
 
 ax_large.set_title('Hubble Ultra Deep Field')
@@ -89,7 +89,7 @@ colorlist = ['red', 'orange', 'yellow', 'lime', 'cyan', 'magenta']
 letterlist = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
 for i, (row_index, col_index) in enumerate(zoom_regions):
     if i < 6: # Ensure we only create 6 zoom-in plots
-        ax_zoom = fig.add_subplot(gs[row_index, col_index], projection=w)
+        ax_zoom = fig.add_subplot(gridspec[row_index, col_index], projection=w)
         ax_zoom.imshow(rgb_data, origin='lower')
         ax_zoom.set_xlim(bl_corner_x[i], bl_corner_x[i]+zoomin_size)
         ax_zoom.set_ylim(bl_corner_y[i], bl_corner_y[i]+zoomin_size)
@@ -109,6 +109,6 @@ for i, (row_index, col_index) in enumerate(zoom_regions):
                         fill=False, edgecolor=colorlist[i], linewidth=0.5)
         ax_large.add_patch(zoom_loc)
 
-plt.subplots_adjust(left=0.16, bottom=0.17, hspace=0.01)  # reduce vertical space
+plt.subplots_adjust(left=0.16, bottom=0.17, hspace=0.03)  # reduce vertical space
 fig.savefig("HUDF_multiplot.pdf", dpi=300)  # saving only works before showing plot
 plt.show()
