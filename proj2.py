@@ -35,7 +35,7 @@ hdulist.close()  # close the FITS file to save memory
 ##print(w)
 
 ### setup the figure
-fig = plt.figure(figsize=(12, 8.5))
+fig = plt.figure(figsize=(10, 8))
 fig.tight_layout()
 gs = gridspec.GridSpec(3, 5, figure=fig) # big plot takes up 3 rows & 3 columns, + 2 columns for zoom plots
 
@@ -84,20 +84,29 @@ zoom_regions = [
 
 # Define zoom-in limits for each small plot
 zoomin_size = 150  # panel width in pixels
-bl_corner_x = [200, 1555, 3390, 570, 3800, 2000]  # x positions of each panel's bottom left corner
-bl_corner_y = [400, 380, 420, 3870, 2570, 1161]  # y positions of each panel's bottom left corner
+bl_corner_x = [2500, 555, 1696, 696, 1500, 2000]  # x positions of each panel's bottom left corner
+bl_corner_y = [400, 1750, 3676, 2700, 3570, 1161]  # y positions of each panel's bottom left corner
 
 # list of unique border colors for each zoom-in subplot
 from matplotlib.patches import Rectangle
 colorlist = ['red', 'orange', 'yellow', 'lime', 'cyan', 'magenta']
-for i, (row_idx, col_idx) in enumerate(zoom_regions):
+letterlist = ['(a)', '(b)', '(c)', '(d)', '(e)', '(f)']
+for i, (row_index, col_index) in enumerate(zoom_regions):
     if i < 6: # Ensure we only create 6 zoom-in plots
-        ax_zoom = fig.add_subplot(gs[row_idx, col_idx], projection=w)
+        ax_zoom = fig.add_subplot(gs[row_index, col_index], projection=w)
         ax_zoom.imshow(rgb_data, origin='lower')
         ax_zoom.set_xlim(bl_corner_x[i], bl_corner_x[i]+zoomin_size)
         ax_zoom.set_ylim(bl_corner_y[i], bl_corner_y[i]+zoomin_size)
-        ax_zoom.set_title(f'Zoom {i+1}')
         ax_zoom.axis('off') # Hide ticks
+
+        # Apply rectangle border for each zoom-in subplot
+        border = Rectangle((bl_corner_x[i], bl_corner_y[i]), zoomin_size, zoomin_size,
+                        fill=False, edgecolor=colorlist[i], linewidth=5)
+        ax_zoom.add_patch(border)
+
+        # Add text at the upper right corner of each zoom-in subplot.
+        ax_zoom.text(bl_corner_x[i]+0.9*zoomin_size, bl_corner_y[i]+0.9*zoomin_size,
+                letterlist[i], fontsize=12, color=colorlist[i], ha='right', va='top')
 
         # Plot squares representing areas of zoom on main big figure
         zoom_loc = Rectangle((bl_corner_x[i], bl_corner_y[i]), zoomin_size, zoomin_size,
