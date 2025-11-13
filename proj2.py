@@ -3,8 +3,32 @@ import matplotlib.gridspec as gridspec
 from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
-# from astropy.wcs import wcs
-# from astropy.table import Table
+
+# LOGGING STUFF START; this is for debugging purposes.
+###################################################################################################
+import logging
+
+# create a module-level logger with "getLogger"
+
+logging.basicConfig(
+    filename='proj2.log',  # create file with the name "hw3.log" and store logging info there
+    level=logging.DEBUG,   # This prints log information in debug mode (useful for developers)
+    filemode='w',   # overwrite the log file every time this script is run
+    format='%(name)-12s: %(levelname)-8s %(message)s',  # include the log name, log type "DEBUG", and the log message
+    )
+
+logger = logging.getLogger(__name__)
+
+'''Use these instead of print statements
+logging.debug() # for developers
+logging.info() # general information, usually to track progress
+logging.warning() # something unexpected but still able to run
+logging.error() # issues that affects the proper functioning
+logging.critical() # severe problem
+'''
+    
+###################################################################################################
+# LOGGING STUFF END. Now let's move on to the actual stuff in this module.
 
 # Step 1: get the HUDF images in 3 filters.
 # The original press release image (https://science.nasa.gov/asset/hubble/hubble-ultra-deep-field-image-reveals-galaxies-galore/)
@@ -32,7 +56,6 @@ hdulist = fits.open('j8m803020_drc.fits')
 header = hdulist[1].header  # Access the header of the science HDU (index 1)
 w = WCS(header)  # obtain the WCS object
 hdulist.close()  # close the FITS file to save memory
-##print(w)
 
 ### setup the figure
 fig = plt.figure(figsize=(8, 5))
@@ -58,6 +81,8 @@ rgb_data = channelnorm(rgb_data, 0, -0.01, 0.043)
 rgb_data = channelnorm(rgb_data, 1, -0.01, 0.052)
 # Stretched blue channel
 rgb_data = channelnorm(rgb_data, 2, -0.01, 0.05)
+# Replace NaN values with 0 in our image. This is to eliminate RuntimeWarnings.
+rgb_data = np.nan_to_num(rgb_data)
 
 # Display RGB image in the big plot after modifying channels. This big plot spans multiple grid cells.
 ax_large = fig.add_subplot(gridspec[0:3, 0:3], projection=w) # Spans 3 rows and columns (from index 0 to 2)
@@ -65,7 +90,7 @@ ax_large.imshow(rgb_data, origin='lower')
 
 ax_large.set_title('Hubble Ultra Deep Field')
 ax_large.set_xlabel('Right Ascension (hms)') # Label the x-axis
-ax_large.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding
+ax_large.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding ("labelpad")
 
 # Create the six smaller zoom-in plots
 # We'll place them in the remaining grid cells and potentially create new ones within those
@@ -106,7 +131,7 @@ for i, (row_index, col_index) in enumerate(zoom_regions):
 
         # Plot squares representing areas of zoom on main big figure
         zoom_loc = Rectangle((bl_corner_x[i], bl_corner_y[i]), zoomin_size, zoomin_size,
-                        fill=False, edgecolor=colorlist[i], linewidth=0.5)
+                        fill=False, edgecolor=colorlist[i], linewidth=0.5, zorder=3)  # z-order above circle annotations
         ax_large.add_patch(zoom_loc)
 
 fig.subplots_adjust(left=0.16, bottom=0.17, hspace=0.05)  # adjust margins & reduce vertical space of the multiplot
