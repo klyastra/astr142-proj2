@@ -88,10 +88,6 @@ rgb_data = np.nan_to_num(rgb_data)
 ax_large = fig.add_subplot(gridspec[0:3, 0:3], projection=w) # Spans 3 rows and columns (from index 0 to 2)
 ax_large.imshow(rgb_data, origin='lower')
 
-ax_large.set_title('Hubble Ultra Deep Field')
-ax_large.set_xlabel('Right Ascension (hms)') # Label the x-axis
-ax_large.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding ("labelpad")
-
 # Create the six smaller zoom-in plots
 # We'll place them in the remaining grid cells and potentially create new ones within those
 zoom_regions = [
@@ -134,9 +130,6 @@ for i, (row_index, col_index) in enumerate(zoom_regions):
                         fill=False, edgecolor=colorlist[i], linewidth=0.5, zorder=3)  # z-order above circle annotations
         ax_large.add_patch(zoom_loc)
 
-fig.subplots_adjust(left=0.16, bottom=0.17, hspace=0.05)  # adjust margins & reduce vertical space of the multiplot
-logger.info('Saving multiplot before source annotations...')
-fig.savefig("HUDF_multiplot_zoom_only.pdf", dpi=300)  # save multiplot BEFORE adding circle annotations
 
 # Step 3: Query & plot photometric redshift catalog sources onto RGB image
 from astroquery.vizier import Vizier
@@ -156,11 +149,12 @@ z_phot_rowlimit = -1
 # PLus, bright objects are more likely to have spectroscopic redshift measurements.
 logger.info("Querying photometric redshift sources from VizieR...")
 z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb', 'zbmin', 'zbmax'],
-           column_filters={"Vmag":"<24"}, row_limit=z_phot_rowlimit)
+           column_filters={"Vmag":"<24.5"}, row_limit=z_phot_rowlimit)
 z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
 # "zbmin" and "zbmax" represent lower & upper bounds for zb, respectively
-logger.info(f"{len(z_phot_list)} photometric redshift sources have been found.")
+z_phot_count = len(z_phot_list)  # count how many photometric redshift sources were found
+logger.info(f"{z_phot_count} photometric redshift sources have been found.")
 
 # Assume that all spectroscopic redshift sources have photometric counterparts.
 # Hence, we refrain from querying the spectroscopic redshift catalog (commented out below)
@@ -186,11 +180,12 @@ cross_match_result = XMatch.query(
     colRA1 = 'RAJ2000',
     colDec1 = 'DEJ2000'
 )
-logger.info(f"{len(cross_match_result['zb'])} out of {len(z_phot_list)} phot_z sources have been successfully cross-matched with spec_z sources.")
+cross_match_count = len(cross_match_result['zb'])  # count how many sources were cross-matched
+logger.info(f"{cross_match_count} out of {z_phot_count} phot_z sources have been successfully cross-matched with spec_z sources.")
 
 # plot circle patches for each row from the VizieR table
 logger.info("Adding circle annotations to multiplot...")
-for i in range(len(z_phot_list['RAJ2000'])):
+for i in range(z_phot_count):
     ra_float = z_phot_list['RAJ2000'][i]
     dec_float = z_phot_list['DEJ2000'][i]
 
@@ -206,22 +201,29 @@ for i in range(len(z_phot_list['RAJ2000'])):
     if z_phot_list['RAJ2000'][i] in cross_match_result['RAJ2000_1']:
         # plot green circles for sources with both phot & spec z
         both_z_circle = patches.Circle((ra_px, dec_px),
-                    radius=80, edgecolor='#00FF00', facecolor='none', lw=0.4, alpha=0.4, label='Both phot & spec z')
+                    radius=80, edgecolor='springgreen', facecolor='none', lw=0.4, alpha=0.4, label=f'Both phot & spec z ({cross_match_count} sources)')
         ax_large.add_patch(both_z_circle)
         
     else:
-        # plot magenta circles for sources with both phot & spec z
+        # plot pink circles for sources with both phot & spec z
         phot_z_circle = patches.Circle((ra_px, dec_px),
-                    radius=80, edgecolor='#FF00FF', facecolor='none', lw=0.4, alpha=0.4, label='Phot z only')
+                    radius=80, edgecolor='deeppink', facecolor='none', lw=0.4, alpha=0.4, label=f'Phot z only ({z_phot_count-cross_match_count} sources)')
         ax_large.add_patch(phot_z_circle)
 
     # break the loop if we have too many sources to plot
     if i >= 200:
-        logger.warning('Too many sources to annotate! Limiting number of circle annotations to 200.')
+        logger.warning('Too many sources to annotate! Limiting number of circle annotations to 200 to cut loading time.')
         break
 
+# Add labels for the multiplot
 logger.info("Circle annotations successful.")
 fig.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors in multiplot
+ax_large.set_title("Hubble Ultra Deep Field")
+ax_large.set_xlabel('Right Ascension (hms)') # Label the x-axis
+ax_large.set_ylabel('Declination (dms)', labelpad=-1.) # Label the y-axis; reduce padding ("labelpad")
+fig.subplots_adjust(left=0.16, bottom=0.17, hspace=0.07)  # adjust margins & reduce vertical space of the multiplot
+
+###############################################################################
 
 # Step 4: Create scatterplot of photometric vs. spectroscopic redshifts
 logger.info("Creating phot/spec_z scatterplot...")
@@ -243,7 +245,7 @@ linefit = ax_scat.plot(x_function, x_function,
         color='orange', linestyle='--', alpha=0.5,
         label='Line of equality (z_phot = z_spec)')
 
-# Add labels and title
+# Add labels and title for the scatter plot
 ax_scat.set_xlabel("Photometric redshift (z_phot)")
 ax_scat.set_xticks(np.arange(max_range) * 0.5)  # ticks of 0.5 spacing, from 0 to 3.0
 ax_scat.set_xlim([0, max_phot_z])  # scale plot according to max phot_z
@@ -252,10 +254,11 @@ ax_scat.set_ylabel("Spectropscopic redshift (z_spec)")
 ax_scat.set_yticks(np.arange(max_range) * 0.5)  # ticks of 0.5 spacing, from 0 to 3.0
 ax_scat.set_ylim([0, max_phot_z])  # scale plot according to max phot_z
 
-ax_scat.set_title("Photometric vs. Spectroscopic Redshifts\nin the Hubble Ultra Deep Field")
+ax_scat.set_title(f"Photometric vs. Spectroscopic Redshifts\nin the Hubble Ultra Deep Field ({cross_match_count} sources)")
 ax_scat.set_aspect('equal', adjustable='box')  # force equal scale
 handles, labels = ax_scat.get_legend_handles_labels()
-ax_scat.legend(handles, labels,  fontsize=6, loc='upper right')  # position legend
+ax_scat.legend(handles, labels,  fontsize=6, loc='upper left')  # position legend
+
 
 # Save scatter & multiplot
 logger.info("Scatterplot successfully created. Saving...")
