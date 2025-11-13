@@ -101,6 +101,7 @@ matplotlib.font_manager: DEBUG    findfont: score(FontEntry(fname='/usr/share/fo
 matplotlib.font_manager: DEBUG    findfont: score(FontEntry(fname='/usr/share/fonts/truetype/ubuntu/UbuntuMono[wght].ttf', name='Ubuntu Mono', style='normal', variant='normal', weight=400, stretch='normal', size='scalable')) = 10.05
 matplotlib.font_manager: DEBUG    findfont: score(FontEntry(fname='/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf', name='DejaVu Serif', style='normal', variant='normal', weight=700, stretch='normal', size='scalable')) = 10.335
 matplotlib.font_manager: DEBUG    findfont: Matching sans\-serif:style=normal:variant=normal:weight=normal:stretch=normal:size=10.0 to DejaVu Sans ('/usr/share/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf') with score of 0.050000.
+__main__    : INFO     Saving multiplot before source annotations...
 matplotlib.font_manager: DEBUG    findfont: Matching sans\-serif:style=normal:variant=normal:weight=normal:stretch=normal:size=12.0.
 matplotlib.font_manager: DEBUG    findfont: score(FontEntry(fname='/usr/share/matplotlib/mpl-data/fonts/ttf/cmss10.ttf', name='cmss10', style='normal', variant='normal', weight=400, stretch='normal', size='scalable')) = 10.05
 matplotlib.font_manager: DEBUG    findfont: score(FontEntry(fname='/usr/share/matplotlib/mpl-data/fonts/ttf/DejaVuSans-Oblique.ttf', name='DejaVu Sans', style='oblique', variant='normal', weight=400, stretch='normal', size='scalable')) = 1.05
@@ -2154,6 +2155,13 @@ matplotlib.font_manager: DEBUG    findfont: Matching DejaVu Sans Display:style=n
 matplotlib.backends.backend_pdf: DEBUG    Assigning font /F1 = '/usr/share/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf'
 matplotlib.backends.backend_pdf: DEBUG    Embedding font /usr/share/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf.
 matplotlib.backends.backend_pdf: DEBUG    Writing TrueType font.
+__main__    : INFO     Querying photometric redshift sources from VizieR...
+__main__    : INFO     127 photometric redshift sources have been found.
+__main__    : INFO     Cross-matching phot_z with spec_z...
+__main__    : INFO     127 out of 127 phot_z sources have been successfully cross-matched with spec_z sources.
+__main__    : INFO     Adding circle annotations to multiplot...
+__main__    : INFO     Circle annotations successful.
+__main__    : INFO     Creating phot/spec_z scatterplot...
 PIL.PngImagePlugin: DEBUG    STREAM b'IHDR' 16 13
 PIL.PngImagePlugin: DEBUG    STREAM b'PLTE' 41 495
 PIL.PngImagePlugin: DEBUG    STREAM b'tRNS' 548 23
@@ -2174,6 +2182,7 @@ PIL.PngImagePlugin: DEBUG    STREAM b'IHDR' 16 13
 PIL.PngImagePlugin: DEBUG    STREAM b'IDAT' 41 241
 PIL.PngImagePlugin: DEBUG    STREAM b'IHDR' 16 13
 PIL.PngImagePlugin: DEBUG    STREAM b'IDAT' 41 252
+__main__    : INFO     Scatterplot successfully created. Saving...
 matplotlib.backends.backend_pdf: DEBUG    Assigning font /F1 = '/usr/share/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf'
 matplotlib.font_manager: DEBUG    findfont: Matching sans\-serif:style=normal:variant=normal:weight=normal:stretch=normal:size=6.0.
 matplotlib.font_manager: DEBUG    findfont: score(FontEntry(fname='/usr/share/matplotlib/mpl-data/fonts/ttf/cmss10.ttf', name='cmss10', style='normal', variant='normal', weight=400, stretch='normal', size='scalable')) = 10.05

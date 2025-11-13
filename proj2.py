@@ -135,6 +135,7 @@ for i, (row_index, col_index) in enumerate(zoom_regions):
         ax_large.add_patch(zoom_loc)
 
 fig.subplots_adjust(left=0.16, bottom=0.17, hspace=0.05)  # adjust margins & reduce vertical space of the multiplot
+logger.info('Saving multiplot before source annotations...')
 fig.savefig("HUDF_multiplot_zoom_only.pdf", dpi=300)  # save multiplot BEFORE adding circle annotations
 
 # Step 3: Query & plot photometric redshift catalog sources onto RGB image
@@ -153,11 +154,13 @@ z_phot_rowlimit = -1
 # set up filters and limits before querying VizieR.
 # Here we'll only get bright objects so we can see them in our plot.
 # PLus, bright objects are more likely to have spectroscopic redshift measurements.
+logger.info("Querying photometric redshift sources from VizieR...")
 z_phot_vizier = Vizier(columns=['RAJ2000', 'DEJ2000', 'Vmag', 'zb', 'zbmin', 'zbmax'],
            column_filters={"Vmag":"<24"}, row_limit=z_phot_rowlimit)
 z_phot_list = z_phot_vizier.get_catalogs("J/AJ/132/926/catalog")[0]  # 0th index is the actual contents of the tablelist
 # "zb" = photometric redshift, "RAJ2000" and "DEJ2000" both in degrees (float values)
 # "zbmin" and "zbmax" represent lower & upper bounds for zb, respectively
+logger.info(f"{len(z_phot_list)} photometric redshift sources have been found.")
 
 # Assume that all spectroscopic redshift sources have photometric counterparts.
 # Hence, we refrain from querying the spectroscopic redshift catalog (commented out below)
@@ -175,6 +178,7 @@ z_spec_list = z_spec_vizier.get_catalogs("J/A+A/608/A2/combined")[0]  # 0th inde
 
 ##### RA/Dec cross-matching between Photometric & Spectroscopic sources  #####
 # https://astroquery.readthedocs.io/en/latest/xmatch/xmatch.html
+logger.info("Cross-matching phot_z with spec_z...")
 cross_match_result = XMatch.query(
     cat1 = z_phot_list,
     cat2 = 'vizier:J/A+A/608/A2/combined',  # this is the spectroscopic redshift catalog
@@ -182,8 +186,10 @@ cross_match_result = XMatch.query(
     colRA1 = 'RAJ2000',
     colDec1 = 'DEJ2000'
 )
+logger.info(f"{len(z_phot_list['RAJ2000'])} out of {len(z_phot_list)} phot_z sources have been successfully cross-matched with spec_z sources.")
 
 # plot circle patches for each row from the VizieR table
+logger.info("Adding circle annotations to multiplot...")
 for i in range(len(z_phot_list['RAJ2000'])):
     ra_float = z_phot_list['RAJ2000'][i]
     dec_float = z_phot_list['DEJ2000'][i]
@@ -211,11 +217,14 @@ for i in range(len(z_phot_list['RAJ2000'])):
 
     # break the loop if we have too many sources to plot
     if i >= 200:
+        logger.warning('Too many sources to annotate! Limiting number of circle annotations to 200.')
         break
-    
+
+logger.info("Circle annotations successful.")
 fig.legend(handles=[both_z_circle, phot_z_circle], fontsize=6)  # legend for patch colors in multiplot
 
 # Step 4: Create scatterplot of photometric vs. spectroscopic redshifts
+logger.info("Creating phot/spec_z scatterplot...")
 fig_scat, ax_scat = plt.subplots(figsize=(6.5, 4))
 fig_scat.subplots_adjust(left=0.15, bottom=0.12)
 # Create the scatter plot with errorbars
@@ -249,6 +258,7 @@ handles, labels = ax_scat.get_legend_handles_labels()
 ax_scat.legend(handles, labels,  fontsize=6, loc='upper right')  # position legend
 
 # Save scatter & multiplot
+logger.info("Scatterplot successfully created. Saving...")
 fig_scat.savefig("phot-spec_redshift_plot.pdf", dpi=200)  # saving only works before showing plot
 fig.savefig("HUDF_multiplot.pdf", dpi=300)  # plot with zoom squares AND annotation circles
 
