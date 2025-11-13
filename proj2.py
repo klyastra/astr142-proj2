@@ -186,7 +186,7 @@ cross_match_result = XMatch.query(
     colRA1 = 'RAJ2000',
     colDec1 = 'DEJ2000'
 )
-logger.info(f"{len(z_phot_list['RAJ2000'])} out of {len(z_phot_list)} phot_z sources have been successfully cross-matched with spec_z sources.")
+logger.info(f"{len(cross_match_result['zb'])} out of {len(z_phot_list)} phot_z sources have been successfully cross-matched with spec_z sources.")
 
 # plot circle patches for each row from the VizieR table
 logger.info("Adding circle annotations to multiplot...")
