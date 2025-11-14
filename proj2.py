@@ -14,7 +14,7 @@ logging.basicConfig(
     filename='proj2.log',  # create file with the name "hw3.log" and store logging info there
     level=logging.DEBUG,   # This prints log information in debug mode (useful for developers)
     filemode='w',   # overwrite the log file every time this script is run
-    format='%(name)-12s: %(levelname)-8s %(message)s',  # include the log name, log type "DEBUG", and the log message
+    format='%(asctime)s - %(name)-12s: %(levelname)-8s %(message)s',  # include the log name, log type "DEBUG", and the log message
     )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ logging.warning() # something unexpected but still able to run
 logging.error() # issues that affects the proper functioning
 logging.critical() # severe problem
 '''
-    
+
 ###################################################################################################
 # LOGGING STUFF END. Now let's move on to the actual stuff in this module.
 
@@ -64,14 +64,15 @@ gridspec = gridspec.GridSpec(3, 5, figure=fig) # big plot takes up 3 rows & 3 co
 
 ### create the big plot with the RGB image
 # RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
-rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)
+rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)  # an axis of -1 puts the channel element last
 
 # Define a function that allows us the modify levels of each channel in an RGB image
 # https://stackoverflow.com/questions/42008932/how-to-change-vmin-and-vmax-of-each-color-with-matplotlib-imshow
+# An RGB image is a 3D array with the following elements: 0 = row, 1 = column, 2 = channel
 def channelnorm(im, channel, vmin, vmax):
-    c = (im[:,:,channel]-vmin) / (vmax-vmin)
-    c[c<0.] = 0
-    c[c>1.] = 1
+    c = (im[:,:,channel]-vmin) / (vmax-vmin)  # normalize the entire channel (via division)
+    c[c<0.] = 0  # replace negative values with zero
+    c[c>1.] = 1  # replace saturated values with 1 (a normalized image must have values between 0 and 1)
     im[:,:,channel] = c
     return im
 
