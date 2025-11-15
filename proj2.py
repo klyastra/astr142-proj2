@@ -78,8 +78,31 @@ gridspec = gridspec.GridSpec(3, 5, figure=fig) # big plot takes up 3 rows & 3 co
 ### create the big plot with the RGB image
 # RGB color is defined by a 3-list. Create an RGB image by assigning R, G, B:
 try:
+    
+    # Define a function that allows us the modify levels of each channel in an RGB image
+    # https://stackoverflow.com/questions/42008932/how-to-change-vmin-and-vmax-of-each-color-with-matplotlib-imshow
+    # An RGB image is a 3D array with the following elements: 0 = row, 1 = column, 2 = channel
+    def channelnorm(im, vmin, vmax):
+        c = (im - vmin) / (vmax-vmin)  # normalize the entire channel (via division)
+        if vmax-vmin == 0:
+            c = (im - vmin) / (0.0001)  # prevent zero division
+        c[c<0.] = 0  # replace negative values with zero
+        c[c>1.] = 1  # replace saturated values with 1 (a normalized image must have values between 0 and 1)
+        # Replace NaN values with 0 in our image. This is to eliminate RuntimeWarnings.
+        im = np.nan_to_num(c)
+        return im
+
+    logger.info("Stretching color channels...")
+    # Stretch red channel
+    red_data = channelnorm(red_data, -0.01, 0.043)
+    # Stretch green channel
+    green_data = channelnorm(green_data, -0.01, 0.052)
+    # Stretch blue channel
+    blue_data = channelnorm(blue_data, -0.01, 0.05)
+
     logger.info("Creating RGB image...")
     rgb_data = np.stack([red_data, green_data, blue_data], axis=-1)  # an axis of -1 puts the channel element last
+
 except ValueError:
     logger.error(f"The R, G, and B frames must have the same size (4243 columns x 4217 rows).")
     logger.error(f"The sizes of the RGB frames used were:")
@@ -88,27 +111,10 @@ except ValueError:
     logger.error(f"  B: {blue_data.shape[1]}x{blue_data.shape[0]}")
     logger.error(f"Please change the offending file(s).")
     raise  # Re-raise the exception to stop execution
+except (TypeError, NameError) as e:
+    logger.error(f"{e}: an invalid argument was inputted into the channelnorm() function.")
+    raise  # Re-raise the exception to stop execution
 
-# Define a function that allows us the modify levels of each channel in an RGB image
-# https://stackoverflow.com/questions/42008932/how-to-change-vmin-and-vmax-of-each-color-with-matplotlib-imshow
-# An RGB image is a 3D array with the following elements: 0 = row, 1 = column, 2 = channel
-def channelnorm(im, channel, vmin, vmax):
-    c = (im[:,:,channel]-vmin) / (vmax-vmin)  # normalize the entire channel (via division)
-    if vmax-vmin == 0:
-        c = (im[:,:,channel]-vmin) / (0.0001)  # prevent zero division
-    c[c<0.] = 0  # replace negative values with zero
-    c[c>1.] = 1  # replace saturated values with 1 (a normalized image must have values between 0 and 1)
-    im[:,:,channel] = c
-    return im
-
-# Stretched red channel
-rgb_data = channelnorm(rgb_data, 0, -0.01, 0.043)
-# Stretched green channel
-rgb_data = channelnorm(rgb_data, 1, -0.01, 0.052)
-# Stretched blue channel
-rgb_data = channelnorm(rgb_data, 2, -0.01, 0.05)
-# Replace NaN values with 0 in our image. This is to eliminate RuntimeWarnings.
-rgb_data = np.nan_to_num(rgb_data)
 
 # Display RGB image in the big plot after modifying channels. This big plot spans multiple grid cells.
 ax_large = fig.add_subplot(gridspec[0:3, 0:3], projection=w) # Spans 3 rows and columns (from index 0 to 2)
